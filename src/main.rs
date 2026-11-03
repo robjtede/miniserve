@@ -37,6 +37,8 @@ mod file_utils;
 mod listing;
 mod pipe;
 mod renderer;
+#[cfg(any(windows, test))]
+mod terminal_qr;
 mod webdav_fs;
 
 use crate::args::LogColor;
@@ -313,6 +315,13 @@ async fn run(miniserve_config: MiniserveConfig) -> Result<(), StartupError> {
             match QRBuilder::new(url.clone()).ecl(consts::QR_EC_LEVEL).build() {
                 Ok(qr) => {
                     println!("QR code for {}:", url.green().bold());
+                    #[cfg(windows)]
+                    {
+                        let _ = colored::control::set_virtual_terminal(true);
+                        print!("{}", terminal_qr::render(&qr));
+                    }
+
+                    #[cfg(not(windows))]
                     qr.print();
                 }
                 Err(e) => {
